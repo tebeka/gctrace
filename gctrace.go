@@ -1,7 +1,9 @@
 package gctrace
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -53,69 +55,68 @@ func idxOf(name string) int {
 	return re.SubexpIndex(name)
 }
 
-// Parse parsers a gctrace line.
-func Parse(line string) (Trace, error) {
+// Unmarshal parsers a gctrace line.
+func Unmarshal(line string, tr *Trace) error {
 	match := re.FindStringSubmatch(line)
 	if match == nil {
-		return Trace{}, fmt.Errorf("no match")
+		return fmt.Errorf("no match")
 	}
 
-	var tr Trace
 	var err error
 	tr.Num, err = strconv.Atoi(match[idxOf("num")])
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	tr.Start, err = time.ParseDuration(match[idxOf("start")])
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	tr.Percentage, err = strconv.ParseFloat(match[idxOf("prec")], 64)
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	if err := parseWall(match[idxOf("clock")], &tr.Wall); err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	if err := parseCPU(match[idxOf("cpu")], &tr.CPU); err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	// TODO: Multiply by MB?
 	tr.Heap.Before, err = strconv.Atoi(match[idxOf("before")])
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	tr.Heap.After, err = strconv.Atoi(match[idxOf("after")])
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	tr.Heap.Live, err = strconv.Atoi(match[idxOf("live")])
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	tr.Heap.Goal, err = strconv.Atoi(match[idxOf("goal")])
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	tr.Cores, err = strconv.Atoi(match[idxOf("cores")])
 	if err != nil {
-		return Trace{}, err
+		return err
 	}
 
 	if len(match[idxOf("forced")]) > 0 {
 		tr.Forced = true
 	}
 
-	return tr, nil
+	return nil
 }
 
 func parseWall(s string, w *Wall) error {
@@ -182,4 +183,59 @@ func parseCPU(s string, cpu *CPU) error {
 
 func cpuSplit(r rune) bool {
 	return r == '/' || r == '+'
+}
+
+type Scanner struct {
+	lnum int
+	s    *bufio.Scanner
+	err  error
+	tr   Trace
+}
+
+func NewScanner(r io.Reader) *Scanner {
+	sc := Scanner{
+		s: bufio.NewScanner(r),
+	}
+	return &sc
+}
+
+func (s *Scanner) Next() bool {
+	if s.err != nil {
+		return false
+	}
+
+	if !s.s.Scan() {
+		return false
+	}
+
+	s.err = s.s.Err()
+	if s.err != nil {
+		return false
+	}
+	s.lnum++
+
+	// Skip:
+	// # command-line-arguments
+	if strings.HasPrefix(s.s.Text(), "#") {
+		return s.Next()
+	}
+
+	// TODO: Zero tr fields
+	s.err = Unmarshal(s.s.Text(), &s.tr)
+	if s.err != nil {
+		return false
+	}
+	return true
+}
+
+func (s *Scanner) Err() error {
+	return s.err
+}
+
+func (s *Scanner) Line() int {
+	return s.lnum
+}
+
+func (s *Scanner) Trace() Trace {
+	return s.tr
 }
