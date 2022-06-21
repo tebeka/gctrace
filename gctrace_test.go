@@ -4,15 +4,17 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTrace(t *testing.T) {
+	require := require.New(t)
 	line := `gc 18 @1.824s 13%: 0.030+44+0.015 ms clock, 0.12+29/43/0+0.060 ms cpu, 173->203->101 MB, 203 MB goal, 0 MB stacks, 0 MB globals, 4 P`
 
 	var tr Trace
-	if err := Unmarshal(line, &tr); err != nil {
-		t.Fatal(err)
-	}
+	err := Unmarshal(line, &tr)
+	require.NoError(err)
 
 	expected := Trace{
 		Num:        18,
@@ -39,18 +41,13 @@ func TestTrace(t *testing.T) {
 		Cores: 4,
 	}
 
-	if expected != tr {
-		t.Logf("tr: %+v\n", tr)
-		t.Logf("expected: %+v\n", expected)
-		t.Fatal()
-	}
+	require.Equal(expected, tr)
 }
 
 func TestScanner(t *testing.T) {
+	require := require.New(t)
 	file, err := os.Open("testdata/map.gctrace")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	defer file.Close()
 
 	s := NewScanner(file)
@@ -58,17 +55,7 @@ func TestScanner(t *testing.T) {
 	for s.Next() {
 		count++
 	}
-	if err := s.Err(); err != nil {
-		t.Fatal(err)
-	}
-
-	const nr = 95
-	if count != nr {
-		t.Fatalf("count: expected %d, got %d", nr, count)
-	}
-
-	const nl = 97
-	if lnum := s.Line(); lnum != nl {
-		t.Fatalf("lines: expected %d, got %d", nl, lnum)
-	}
+	require.NoError(s.Err())
+	require.Equal(95, count, "trace count")
+	require.Equal(97, s.LineNum(), "line count")
 }

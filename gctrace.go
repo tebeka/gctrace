@@ -42,17 +42,22 @@ type Trace struct {
 	CPU        CPU           // CPU times
 	Heap       Heap          // Heap stats
 	Cores      int           // Number of processors used
-	Forced     bool          // Forced by a runtime.GC() call
+	// TODO
+	// Forced     bool          // Forced by a runtime.GC() call
 }
 
 var (
 	// Example:
 	// gc 18 @1.824s 13%: 0.030+44+0.015 ms clock, 0.12+29/43/0+0.060 ms cpu, 173->203->101 MB, 203 MB goal, 0 MB stacks, 0 MB globals, 4 P
-	re = regexp.MustCompile(`gc (?P<num>\d+) @(?P<start>\d+\.(\d+)?s) (?P<prec>[^%]+)%: (?P<clock>[^ ]+) ms clock, (?P<cpu>[^ ]+) ms cpu, (?P<before>\d+)->(?P<after>\d+)->(?P<live>\d+) MB, (?P<goal>\d+) MB goal,.*?(?P<cores>\d+) P.*?(?P<forced>\(forced\))?`)
+	re = regexp.MustCompile(`gc (?P<num>\d+) @(?P<start>\d+\.(\d+)?s) (?P<prec>[^%]+)%: (?P<clock>[^ ]+) ms clock, (?P<cpu>[^ ]+) ms cpu, (?P<before>\d+)->(?P<after>\d+)->(?P<live>\d+) MB, (?P<goal>\d+) MB goal,.*?(?P<cores>\d+) P`)
 )
 
-func idxOf(name string) int {
-	return re.SubexpIndex(name)
+func sub(name string, match []string) string {
+	i := re.SubexpIndex(name)
+	if i == -1 {
+		panic(fmt.Sprintf("unknown sub-expression: %q", name))
+	}
+	return match[i]
 }
 
 // Unmarshal parsers a gctrace line.
@@ -63,57 +68,53 @@ func Unmarshal(line string, tr *Trace) error {
 	}
 
 	var err error
-	tr.Num, err = strconv.Atoi(match[idxOf("num")])
+	tr.Num, err = strconv.Atoi(sub("num", match))
 	if err != nil {
 		return err
 	}
 
-	tr.Start, err = time.ParseDuration(match[idxOf("start")])
+	tr.Start, err = time.ParseDuration(sub("start", match))
 	if err != nil {
 		return err
 	}
 
-	tr.Percentage, err = strconv.ParseFloat(match[idxOf("prec")], 64)
+	tr.Percentage, err = strconv.ParseFloat(sub("prec", match), 64)
 	if err != nil {
 		return err
 	}
 
-	if err := parseWall(match[idxOf("clock")], &tr.Wall); err != nil {
+	if err := parseWall(sub("clock", match), &tr.Wall); err != nil {
 		return err
 	}
 
-	if err := parseCPU(match[idxOf("cpu")], &tr.CPU); err != nil {
+	if err := parseCPU(sub("cpu", match), &tr.CPU); err != nil {
 		return err
 	}
 
 	// TODO: Multiply by MB?
-	tr.Heap.Before, err = strconv.Atoi(match[idxOf("before")])
+	tr.Heap.Before, err = strconv.Atoi(sub("before", match))
 	if err != nil {
 		return err
 	}
 
-	tr.Heap.After, err = strconv.Atoi(match[idxOf("after")])
+	tr.Heap.After, err = strconv.Atoi(sub("after", match))
 	if err != nil {
 		return err
 	}
 
-	tr.Heap.Live, err = strconv.Atoi(match[idxOf("live")])
+	tr.Heap.Live, err = strconv.Atoi(sub("live", match))
 	if err != nil {
 		return err
 	}
 
-	tr.Heap.Goal, err = strconv.Atoi(match[idxOf("goal")])
+	tr.Heap.Goal, err = strconv.Atoi(sub("goal", match))
 	if err != nil {
 		return err
 	}
 
-	tr.Cores, err = strconv.Atoi(match[idxOf("cores")])
+	tr.Cores, err = strconv.Atoi(sub("cores", match))
 	if err != nil {
 		return err
-	}
-
-	if len(match[idxOf("forced")]) > 0 {
-		tr.Forced = true
 	}
 
 	return nil
@@ -185,6 +186,7 @@ func cpuSplit(r rune) bool {
 	return r == '/' || r == '+'
 }
 
+// Scanner is a trace scanner
 type Scanner struct {
 	lnum int
 	s    *bufio.Scanner
@@ -192,6 +194,7 @@ type Scanner struct {
 	tr   Trace
 }
 
+// NewScanner returns a new Scanner over r.
 func NewScanner(r io.Reader) *Scanner {
 	sc := Scanner{
 		s: bufio.NewScanner(r),
@@ -199,6 +202,7 @@ func NewScanner(r io.Reader) *Scanner {
 	return &sc
 }
 
+// Next advances to the next trace.
 func (s *Scanner) Next() bool {
 	if s.err != nil {
 		return false
@@ -220,22 +224,31 @@ func (s *Scanner) Next() bool {
 		return s.Next()
 	}
 
-	// TODO: Zero tr fields
+	s.tr = Trace{}
 	s.err = Unmarshal(s.s.Text(), &s.tr)
 	if s.err != nil {
+		s.tr = Trace{}
 		return false
 	}
 	return true
 }
 
+// Err returns the last error.
 func (s *Scanner) Err() error {
 	return s.err
 }
 
-func (s *Scanner) Line() int {
+// Line returns the current line.
+func (s *Scanner) Line() string {
+	return s.s.Text()
+}
+
+// LineNum returns the current line number.
+func (s *Scanner) LineNum() int {
 	return s.lnum
 }
 
+// Trace returns the current parsed trace
 func (s *Scanner) Trace() Trace {
 	return s.tr
 }
