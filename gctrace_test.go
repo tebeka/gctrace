@@ -52,7 +52,7 @@ func TestScanner(t *testing.T) {
 
 	s := NewScanner(file)
 	count := 0
-	for s.Next() {
+	for s.Scan() {
 		count++
 	}
 	require.NoError(s.Err())

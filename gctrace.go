@@ -202,8 +202,8 @@ func NewScanner(r io.Reader) *Scanner {
 	return &sc
 }
 
-// Next advances to the next trace.
-func (s *Scanner) Next() bool {
+// Scan advances to the next trace.
+func (s *Scanner) Scan() bool {
 	if s.err != nil {
 		return false
 	}
@@ -221,7 +221,7 @@ func (s *Scanner) Next() bool {
 	// Skip:
 	// # command-line-arguments
 	if strings.HasPrefix(s.s.Text(), "#") {
-		return s.Next()
+		return s.Scan()
 	}
 
 	s.tr = Trace{}

@@ -1,12 +1,12 @@
-# gctrace
+package gctrace_test
 
-**NOT READY YET, USE AT YOUR OWN RISK!**
+import (
+	"fmt"
+	"strings"
 
-Parse `GODEBUG=gctrace=1` output lines.
+	"github.com/tebeka/gctrace"
+)
 
-Examples (see [example_test.go](example_test.go)):
-
-```go
 func ExampleUnmarshal() {
 	line := `gc 18 @1.824s 13%: 0.030+44+0.015 ms clock, 0.12+29/43/0+0.060 ms cpu, 173->203->101 MB, 203 MB goal, 0 MB stacks, 0 MB globals, 4 P`
 	var tr gctrace.Trace
@@ -41,5 +41,3 @@ gc 3 @0.018s 7%: 0.10+0.60+0.013 ms clock, 0.42+1.0/0.55/0+0.055 ms cpu, 4->4->0
 	// 2: {Num:2 Start:14ms Percentage:6 Wall:{SweepTermination:66µs MarkAndScan:800µs MarkTermination:3µs} CPU:{SweepTermination:260µs MarkAssist:1ms MarkBackground:620µs MarkIdle:0s MarkTermination:12µs} Heap:{Before:4 After:4 Live:0 Goal:4} Cores:4}
 	// 3: {Num:3 Start:18ms Percentage:7 Wall:{SweepTermination:100µs MarkAndScan:600µs MarkTermination:13µs} CPU:{SweepTermination:420µs MarkAssist:1ms MarkBackground:550µs MarkIdle:0s MarkTermination:55µs} Heap:{Before:4 After:4 Live:0 Goal:4} Cores:4}
 }
-
-```
