@@ -12,6 +12,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestHelp(t *testing.T) {
+	exe := build(t)
+	var buf bytes.Buffer
+	cmd := exec.Command(exe, "-h")
+	cmd.Stderr = &buf
+	require.NoError(t, cmd.Run(), "run")
+	require.Contains(t, buf.String(), "usage:", "usage")
+}
+
 func TestExe(t *testing.T) {
 	exe := build(t)
 	fileName := "../../testdata/map.gctrace"
@@ -24,7 +33,7 @@ func TestExe(t *testing.T) {
 	cmd := exec.Command(exe)
 	cmd.Stdin = file
 	out, err := cmd.Output()
-	require.NoError(t, err, "can't run")
+	require.NoError(t, err, "run")
 
 	s := bufio.NewScanner(bytes.NewReader(out))
 	lnum := 0
