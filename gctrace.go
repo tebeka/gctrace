@@ -186,6 +186,7 @@ func cpuSplit(r rune) bool {
 	return r == '/' || r == '+'
 }
 
+// TODO: Add a flag for ignore bad lines
 // Scanner is a trace scanner
 type Scanner struct {
 	lnum int
