@@ -44,7 +44,6 @@ func TestExe(t *testing.T) {
 		require.NoError(t, err, "unmarshal JSON at line %d - %s", lnum, err)
 	}
 	require.NoError(t, s.Err(), "scan")
-
 	require.Equal(t, numTraces, lnum, "number of lines")
 }
 
