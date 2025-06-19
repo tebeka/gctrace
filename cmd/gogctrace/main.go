@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 
 	"github.com/tebeka/gctrace"
 )
@@ -17,15 +18,26 @@ Convert Go's GC trace output lines to JSON (one per line).
 Options:
 `
 
+var version = "0.4.0"
+
 func main() {
 	var ignoreErrors bool
+	var showVersion bool
+
 	flag.BoolVar(&ignoreErrors, "continue", false, "don't stop after parse errors")
+	flag.BoolVar(&showVersion, "version", false, "show version & exit")
 
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if showVersion {
+		name := path.Base(os.Args[0])
+		fmt.Printf("%s version %s\n", name, version)
+		return
+	}
 
 	fileName := "<stdin>"
 
