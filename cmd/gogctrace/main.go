@@ -20,12 +20,15 @@ Options:
 
 var version = "0.4.0"
 
-func main() {
-	var ignoreErrors bool
-	var showVersion bool
+var config struct {
+	ignoreErrors bool
+	showVersion  bool
+}
 
-	flag.BoolVar(&ignoreErrors, "continue", false, "don't stop after parse errors")
-	flag.BoolVar(&showVersion, "version", false, "show version & exit")
+func main() {
+
+	flag.BoolVar(&config.ignoreErrors, "continue", false, "don't stop after parse errors")
+	flag.BoolVar(&config.showVersion, "version", false, "show version & exit")
 
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), usage)
@@ -33,7 +36,7 @@ func main() {
 	}
 	flag.Parse()
 
-	if showVersion {
+	if config.showVersion {
 		name := path.Base(os.Args[0])
 		fmt.Printf("%s version %s\n", name, version)
 		return
@@ -71,7 +74,7 @@ func main() {
 		os.Stdout.Write([]byte{'\n'})
 	}
 	if err := s.Err(); err != nil {
-		if !ignoreErrors {
+		if !config.ignoreErrors {
 			fmt.Fprintf(os.Stderr, "error: %s:%d - %s", fileName, s.LineNum(), err)
 			os.Exit(1)
 		}
