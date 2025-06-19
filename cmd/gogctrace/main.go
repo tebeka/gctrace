@@ -70,8 +70,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %s:%d - %s", fileName, s.LineNum(), err)
 			os.Exit(1)
 		}
-		os.Stdout.Write(data)
-		os.Stdout.Write([]byte{'\n'})
+		os.Stdout.Write(data)         // #nosec G104
+		os.Stdout.Write([]byte{'\n'}) // #nosec G104
 	}
 	if err := s.Err(); err != nil {
 		if !config.ignoreErrors {
