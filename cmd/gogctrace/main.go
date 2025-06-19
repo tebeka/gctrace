@@ -55,7 +55,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: can't open %q - %s", fileName, err)
 			os.Exit(1)
 		}
-		defer file.Close()
+		defer file.Close() // #nosec G307
 		r = file
 	default:
 		fmt.Fprintln(os.Stderr, "error: can't wrong number of arguments")
