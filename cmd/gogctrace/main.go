@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -13,9 +14,13 @@ import (
 const usage = `usage: gogctrace [FILE]
 Convert Go's GC trace output lines to JSON (one per line).
 
+Options:
 `
 
 func main() {
+	var ignoreErrors bool
+	flag.BoolVar(&ignoreErrors, "continue", false, "don't stop after parse errors")
+
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -42,6 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	var errLines []int
 	s := gctrace.NewScanner(r)
 	for s.Scan() {
 		data, err := traceJSON(s.Trace())
@@ -53,9 +59,34 @@ func main() {
 		os.Stdout.Write([]byte{'\n'})
 	}
 	if err := s.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s:%d - %s", fileName, s.LineNum(), err)
-		os.Exit(1)
+		if !ignoreErrors {
+			fmt.Fprintf(os.Stderr, "error: %s:%d - %s", fileName, s.LineNum(), err)
+			os.Exit(1)
+		}
+
+		errLines = append(errLines, s.LineNum())
 	}
+
+	if n := len(errLines); n > 0 {
+		fmt.Fprintf(os.Stderr, "warning: %d bad lines: %s\n", n, linesStr(errLines))
+	}
+}
+
+func linesStr(lines []int) string {
+	var buf bytes.Buffer
+	n := min(10, len(lines))
+	for i := range n {
+		if i > 0 {
+			buf.Write([]byte{','})
+		}
+		fmt.Fprintf(&buf, "%d", lines[i])
+	}
+
+	if n < len(lines) {
+		fmt.Fprintf(&buf, "...")
+	}
+
+	return buf.String()
 }
 
 func traceJSON(t gctrace.Trace) ([]byte, error) {
