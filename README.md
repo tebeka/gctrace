@@ -1,7 +1,5 @@
 # gctrace
 
-**NOT READY YET, USE AT YOUR OWN RISK!**
-
 Parse `GODEBUG=gctrace=1` output lines. 
 There's also a utility to convert the output to JSON, see [here][pkg] and download from [here][rel].
 
